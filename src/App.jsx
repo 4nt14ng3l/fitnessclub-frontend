@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { usersEntity, employeesEntity, workoutsEntity } from './store';
+import { EntitySection } from './components/EntitySection';
 import './App.css';
 
 const ALLOWED_ACCOUNTS = [
   { email: 'admin@fitness.com', password: '123' },
-  { email: 'nastya@gmail.com', password: 'qwerty' }
+  { email: 'nastya@gmail.com', password: 'qwerty' },
 ];
 
 function LoginPage({ onLogin }) {
@@ -20,8 +23,8 @@ function LoginPage({ onLogin }) {
     );
 
     if (account) {
-      onLogin(account); 
-      navigate('/workspace'); 
+      onLogin(account);
+      navigate('/workspace');
     } else {
       alert('Неверный Email или Пароль!');
     }
@@ -32,28 +35,30 @@ function LoginPage({ onLogin }) {
       <div className="login-card">
         <h1>Welcome</h1>
         <p className="subtitle">Login to get started!</p>
-        
+
         <form onSubmit={handleLoginSubmit}>
           <div className="login-input-group">
-            <input 
-              type="email" 
-              placeholder="Email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
           <div className="login-input-group">
-            <input 
-              type="password" 
-              placeholder="Password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
-          
-          <button type="submit" className="btn-login">Login</button>
+
+          <button type="submit" className="btn-login">
+            Login
+          </button>
         </form>
       </div>
       <div className="login-footer">
@@ -63,137 +68,84 @@ function LoginPage({ onLogin }) {
   );
 }
 
-function UserCard({ user, onDelete, onEdit }) {
-  return (
-    <div className="user-card">
-      <div className="card-avatar">👤</div>
-      <h3>{user.firstName} {user.lastName}</h3>
-      <p className="card-email">✉ {user.email}</p>
-      <p className="card-id">ID: {user.id}</p>
-      <div className="card-actions">
-        <button onClick={() => onEdit(user)} className="btn-edit-sm">Edit</button>
-        <button onClick={() => onDelete(user.id)} className="btn-delete-sm">Delete</button>
-      </div>
-    </div>
-  );
-}
-
 function WorkspacePage({ currentUser, onLogout }) {
-  const [users, setUsers] = useState([
-    { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@gmail.com' },
-    { id: 2, firstName: 'Dhiraj', lastName: 'Ray', email: 'only2dhir@gmail.com' },
-    { id: 3, firstName: 'Anastasia', lastName: 'Petrova', email: 'nastya@gmail.com' }
-  ]);
+  const [activeTab, setActiveTab] = useState('users');
 
-  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '' });
-  const [editingId, setEditingId] = useState(null);
-  const [viewMode, setViewMode] = useState('table');
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.email) {
-      alert('Заполните все поля!');
-      return;
-    }
-
-    if (editingId !== null) {
-      setUsers(users.map(user => user.id === editingId ? { ...user, ...formData } : user));
-      setEditingId(null);
-    } else {
-      const newUser = {
-        id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-        ...formData
-      };
-      setUsers([...users, newUser]);
-    }
-    setFormData({ firstName: '', lastName: '', email: '' });
-  };
-
-  const startEdit = (user) => {
-    setEditingId(user.id);
-    setFormData({ firstName: user.firstName, lastName: user.lastName, email: user.email });
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setFormData({ firstName: '', lastName: '', email: '' });
-  };
-
-  const handleDeleteUser = (id) => {
-    setUsers(users.filter(user => user.id !== id));
-    if (editingId === id) cancelEdit();
-  };
+  const users = useSelector(usersEntity.selectors.selectItems);
+  const employees = useSelector(employeesEntity.selectors.selectItems);
+  const workouts = useSelector(workoutsEntity.selectors.selectItems);
 
   return (
     <div className="container">
       <div className="user-header">
-        <span>Вы вошли как: <strong>{currentUser?.email}</strong></span>
-        <button onClick={onLogout} className="btn-logout">Выйти 🚪</button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="user-form">
-        <button type="submit" className={`btn-submit ${editingId !== null ? 'btn-save-mode' : ''}`}>
-          {editingId !== null ? 'Save User' : 'Add User'}
+        <span>
+          Вы вошли как: <strong>{currentUser?.email}</strong>
+        </span>
+        <button onClick={onLogout} className="btn-logout">
+          Выйти 🚪
         </button>
-        {editingId !== null && (
-          <button type="button" onClick={cancelEdit} className="btn-cancel">Cancel</button>
-        )}
-        
-        <div className="input-group">
-          <label>FirstName</label>
-          <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} />
-        </div>
-        <div className="input-group">
-          <label>LastName</label>
-          <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} />
-        </div>
-        <div className="input-group">
-          <label>Email</label>
-          <input type="email" name="email" value={formData.email} onChange={handleInputChange} />
-        </div>
-      </form>
-
-      <hr className="divider" />
-
-      <div className="view-toggle-container">
-        <h2>Fitnessclub users</h2>
-        <div className="toggle-buttons">
-          <button className={`btn-toggle ${viewMode === 'table' ? 'active' : ''}`} onClick={() => setViewMode('table')}>📋 Таблица</button>
-          <button className={`btn-toggle ${viewMode === 'cards' ? 'active' : ''}`} onClick={() => setViewMode('cards')}>🎴 Карточки</button>
-        </div>
       </div>
 
-      {viewMode === 'table' ? (
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>Id</th><th>FirstName</th><th>LastName</th><th>Email</th><th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td>{user.id}</td><td>{user.firstName}</td><td>{user.lastName}</td><td>{user.email}</td>
-                <td>
-                  <button onClick={() => startEdit(user)} className="btn-table-edit">Edit</button>
-                  <button onClick={() => handleDeleteUser(user.id)} className="btn-table-delete">Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div className="cards-grid">
-          {users.map((user) => (
-            <UserCard key={user.id} user={user} onDelete={handleDeleteUser} onEdit={startEdit} />
-          ))}
-        </div>
-      )}
+      <div className="toggle-buttons" style={{ marginBottom: '25px' }}>
+        <button
+          className={`btn-toggle ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Users ({users.length})
+        </button>
+        <button
+          className={`btn-toggle ${activeTab === 'employees' ? 'active' : ''}`}
+          onClick={() => setActiveTab('employees')}
+        >
+          Employees ({employees.length})
+        </button>
+        <button
+          className={`btn-toggle ${activeTab === 'workouts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('workouts')}
+        >
+          Workouts ({workouts.length})
+        </button>
+      </div>
+
+            {activeTab === 'users' &&
+        EntitySection({
+          title: 'Fitnessclub users',
+          entity: usersEntity,
+          addLabel: 'Add User',
+          saveLabel: 'Save User',
+          fields: [
+            { name: 'firstName', label: 'FirstName' },
+            { name: 'lastName', label: 'LastName' },
+            { name: 'email', label: 'Email', type: 'email' },
+          ],
+        })}
+
+      {activeTab === 'employees' &&
+        EntitySection({
+          title: 'Fitnessclub employees (TanStack Table)',
+          entity: employeesEntity,
+          addLabel: 'Add Employee',
+          saveLabel: 'Save Employee',
+          useLibraryTable: true,
+          fields: [
+            { name: 'firstName', label: 'FirstName' },
+            { name: 'lastName', label: 'LastName' },
+            { name: 'position', label: 'Position' },
+          ],
+        })}
+
+      {activeTab === 'workouts' &&
+        EntitySection({
+          title: 'Fitnessclub workouts',
+          entity: workoutsEntity,
+          addLabel: 'Add Workout',
+          saveLabel: 'Save Workout',
+          fields: [
+            { name: 'title', label: 'Title' },
+            { name: 'hall', label: 'Hall' },
+            { name: 'time', label: 'Time' },
+          ],
+        })}
     </div>
   );
 }
@@ -209,10 +161,16 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={setCurrentUser} />} />
-        
-        <Route 
-          path="/workspace" 
-          element={currentUser ? <WorkspacePage currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/login" />} 
+
+        <Route
+          path="/workspace"
+          element={
+            currentUser ? (
+              <WorkspacePage currentUser={currentUser} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
         />
 
         <Route path="*" element={<Navigate to="/login" />} />
